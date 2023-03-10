@@ -1,0 +1,66 @@
+<!doctype html>
+<head>
+<title>Web Push Notifications Demo</title>
+</head>
+<body>
+    <center>
+        <H2>Web Push Notifications</H2>
+        <img src="architecture.png"/>
+        <section id="push">
+            <span>Username : </span>
+            <input id="btnUser" type="text" value=""/>
+            <br/>
+            <br/>
+            <button id="btnSubscribe">Click To Subscribe</button>
+            <br/><br/>
+            <span id="txtEndPoint"></span>
+        </section>
+    </center>
+    </body>
+<script>
+    const config = {
+        pushKey: "BJZRIKv-LoL3jyKOTHvQ6sZ_Z7BM5NYEk3LfJiNBlRQb6DMXw7y4bhW6aMrh8DNzScK7WbZl7T5VhFhWHP65vjM",
+    };
+
+    const button = document.getElementById("btnSubscribe");
+    button.addEventListener("click", async () => {
+        swReg = await navigator.serviceWorker.register("/sw.js");
+        console.log(swReg);
+
+        var pushNotificationEndPoint = undefined;
+        const subscription = await swReg.pushManager.subscribe({
+                                    userVisibleOnly: true,
+                                    applicationServerKey: urlB64ToUint8Array(config.pushKey),
+                                    })
+                            .then(currentToken=>{
+                                console.log('End Point Token : '+JSON.stringify(currentToken));
+                                document.getElementById("txtEndPoint").innerText = JSON.stringify(currentToken);
+                                token = currentToken
+                            })
+                            .catch(err => {console.log(err)});
+
+        //Push / store the endpoint 
+        var userValue = document.getElementById("btnUser").value;
+        fetch("http://localhost:5000/registerclient", {
+                method: "POST",
+                body: JSON.stringify({ user : userValue,  endPoint : JSON.stringify(token)})
+                })
+                .then(data=> {console.log();})
+                .catch(err => {console.log(err)});
+        });
+
+    function urlB64ToUint8Array(base64String) {
+        var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+        var base64 = (base64String + padding)
+        .replace(/\-/g, "+")
+        .replace(/_/g, "/");
+
+        var rawData = window.atob(base64);
+        var outputArray = new Uint8Array(rawData.length);
+
+        for (var i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+</script>
